@@ -1,83 +1,163 @@
 import Phaser from "phaser";
-import { Flower, FlowerType } from "./Flower";
+import { Flower } from "./Flower";
+import { getRandomType } from "./functions/boardHelpers";
+
+interface BoardItem {
+  object: Flower;
+}
 
 export class BoardScene extends Phaser.Scene {
+  board: BoardItem[][] = [];
   flowers: Flower[] = [];
+  width = 7;
+  height = 5;
+  frameWidth = 32;
+  frameHeight = 32;
+
+  colOffset = 6;
+  cellW = this.frameWidth + this.colOffset;
+  cellH = this.frameHeight + this.colOffset;
+  startX = 0;
+  startY = 20;
+
   constructor() {
     super({ key: "BoardScene" });
   }
 
   preload() {
     this.load.spritesheet("mushroom", "assets/mushroom.png", {
-      frameWidth: 32,
-      frameHeight: 32,
+      frameWidth: this.frameWidth,
+      frameHeight: this.frameHeight,
     });
   }
 
-  objects: Flower[] = [];
-
   create() {
-    this.createGrid();
+    this.board = this.createBoard(this.width, this.height);
 
-    for (let i = 0; i < 20; i++) {
-      const random = Math.floor(Math.random() * 3) as FlowerType;
-      this.objects.push(new Flower(this, 0, 0, random));
-    }
-
-    Phaser.Actions.GridAlign(this.objects, {
-      width: 5,
-      height: 4,
-      cellWidth: 38,
-      cellHeight: 38,
-      x: 100,
-      y: 20,
-    });
-
-    this.objects.forEach((obj: Flower) => {
+    this.flowers.forEach((obj: Flower) => {
       obj.setInteractive();
       this.onFlowerClick(obj);
     });
+
+    this.createGrid();
   }
 
   update() {}
 
+  createBoard(width: number, height: number): BoardItem[][] {
+    const board = Array.from({ length: height }, () =>
+      Array.from({ length: width }, () => {
+        return { object: new Flower(this, 0, 0, getRandomType()) };
+      }),
+    );
+
+    board.forEach((row) => {
+      row.forEach((item) => {
+        this.flowers.push(item.object);
+      });
+    });
+
+    return board;
+  }
+
   onFlowerClick(obj: Flower) {
     obj.on("pointerdown", () => {
-      obj.setSelected(true);
-      const selected = this.objects.filter((obj) => obj.selected);
-      if (selected.length === 2) {
-        const i1 = this.objects.indexOf(selected[0]);
-        const i2 = this.objects.indexOf(selected[1]);
-        const tempObj = { ...this.objects[i1] };
-
-        this.tweens.add({
-          targets: this.objects[i1],
-          x: this.objects[i2].x,
-          y: this.objects[i2].y,
-          duration: 300,
-          ease: "Power1",
-          yoyo: false,
-          repeat: 0,
-        });
-
-        this.tweens.add({
-          targets: this.objects[i2],
-          x: tempObj.x,
-          y: tempObj.y,
-          duration: 300,
-          ease: "Power1",
-          yoyo: false,
-          repeat: 0,
-        });
-
-        setTimeout(() => {
-          this.objects.forEach((obj) => obj.setSelected(false));
-        }, 300);
-      }
+      obj.setSelected(!obj.selected);
+      this.selectAdjacent(obj);
     });
   }
 
+  selectAdjacent(obj: Flower) {
+    const isSelected = obj.selected;
+    const visited = new Set<string>();
+    const queue: string[] = [];
+    let rowIndex = -1;
+    let colIndex = -1;
+
+    rowIndex = this.board.findIndex((row) => {
+      colIndex = row.findIndex((item) => item.object === obj);
+      return colIndex >= 0;
+    });
+
+    queue.push(`${rowIndex},${colIndex}`);
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      visited.add(current);
+
+      const [row, col] = current.split(",").map(Number);
+
+      if (row > 0) {
+        const up = this.board[row - 1][col];
+        const key = `${row - 1},${col}`;
+        if (!visited.has(key)) {
+          visited.add(key);
+          if (up.object.flowerType === obj.flowerType) {
+            up.object.setSelected(isSelected);
+            queue.push(key);
+          }
+        }
+      }
+      if (row < this.board.length - 1) {
+        const down = this.board[row + 1][col];
+        const key = `${row + 1},${col}`;
+        if (!visited.has(key)) {
+          visited.add(key);
+          if (down.object.flowerType === obj.flowerType) {
+            down.object.setSelected(isSelected);
+            queue.push(key);
+          }
+        }
+      }
+      if (col > 0) {
+        const left = this.board[row][col - 1];
+        const key = `${row},${col - 1}`;
+        if (!visited.has(key)) {
+          visited.add(key);
+          if (left.object.flowerType === obj.flowerType) {
+            left.object.setSelected(isSelected);
+            queue.push(key);
+          }
+        }
+      }
+      if (col < this.board[row].length - 1) {
+        const right = this.board[row][col + 1];
+        const key = `${row},${col + 1}`;
+        if (!visited.has(key)) {
+          visited.add(key);
+          if (right.object.flowerType === obj.flowerType) {
+            right.object.setSelected(isSelected);
+            queue.push(key);
+          }
+        }
+      }
+    }
+  }
+
   createGrid() {
-    this.add.grid(192, 95, 190, 152, 38, 38, 0x000000, 0, 0x888888, 1);
+    const gridCenterX = this.startX + (this.width * this.cellW) / 2;
+    const gridCenterY = this.startY + (this.height * this.cellH) / 2;
+
+    this.add.grid(
+      gridCenterX + this.cellW / 2 - this.colOffset / 2,
+      gridCenterY + this.cellH / 2 - this.colOffset / 2,
+      this.width * this.cellW,
+      this.height * this.cellH,
+      this.cellW,
+      this.cellH,
+      0x000000,
+      0,
+      0x888888,
+      1,
+    );
+
+    Phaser.Actions.GridAlign(this.flowers, {
+      width: this.width,
+      height: this.height,
+      cellWidth: this.cellW,
+      cellHeight: this.cellH,
+      x: this.startX + this.cellW / 2,
+      y: this.startY + this.cellH / 2,
+    });
   }
 }
