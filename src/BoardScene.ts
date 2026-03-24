@@ -7,8 +7,7 @@ interface BoardItem {
 }
 
 export class BoardScene extends Phaser.Scene {
-  board: BoardItem[][] = [];
-  flowers: Flower[] = [];
+  board: (BoardItem | null)[][] = [];
   width = 7;
   height = 5;
   frameWidth = 32;
@@ -19,6 +18,13 @@ export class BoardScene extends Phaser.Scene {
   cellH = this.frameHeight + this.colOffset;
   startX = 0;
   startY = 20;
+
+  get flowers(): Flower[] {
+    return this.board
+      .flat()
+      .map((item) => item?.object)
+      .filter((obj): obj is Flower => obj !== null);
+  }
 
   constructor() {
     super({ key: "BoardScene" });
@@ -51,12 +57,6 @@ export class BoardScene extends Phaser.Scene {
       }),
     );
 
-    board.forEach((row) => {
-      row.forEach((item) => {
-        this.flowers.push(item.object);
-      });
-    });
-
     return board;
   }
 
@@ -75,11 +75,16 @@ export class BoardScene extends Phaser.Scene {
     let colIndex = -1;
 
     rowIndex = this.board.findIndex((row) => {
-      colIndex = row.findIndex((item) => item.object === obj);
+      colIndex = row.findIndex((item) => item?.object === obj);
       return colIndex >= 0;
     });
 
     queue.push(`${rowIndex},${colIndex}`);
+
+    if (!isSelected) {
+      obj.destroy();
+      this.board[rowIndex].splice(colIndex, 1, null);
+    }
 
     while (queue.length > 0) {
       const current = queue.shift()!;
@@ -92,8 +97,13 @@ export class BoardScene extends Phaser.Scene {
         const key = `${row - 1},${col}`;
         if (!visited.has(key)) {
           visited.add(key);
-          if (up.object.flowerType === obj.flowerType) {
-            up.object.setSelected(isSelected);
+          if (up?.object?.flowerType === obj.flowerType) {
+            if (isSelected) {
+              up.object.setSelected(isSelected);
+            } else {
+              up.object.destroy();
+              this.board[row - 1].splice(col, 1, null);
+            }
             queue.push(key);
           }
         }
@@ -103,8 +113,13 @@ export class BoardScene extends Phaser.Scene {
         const key = `${row + 1},${col}`;
         if (!visited.has(key)) {
           visited.add(key);
-          if (down.object.flowerType === obj.flowerType) {
-            down.object.setSelected(isSelected);
+          if (down?.object?.flowerType === obj.flowerType) {
+            if (isSelected) {
+              down.object.setSelected(isSelected);
+            } else {
+              down.object.destroy();
+              this.board[row + 1].splice(col, 1, null);
+            }
             queue.push(key);
           }
         }
@@ -114,8 +129,13 @@ export class BoardScene extends Phaser.Scene {
         const key = `${row},${col - 1}`;
         if (!visited.has(key)) {
           visited.add(key);
-          if (left.object.flowerType === obj.flowerType) {
-            left.object.setSelected(isSelected);
+          if (left?.object?.flowerType === obj.flowerType) {
+            if (isSelected) {
+              left.object.setSelected(isSelected);
+            } else {
+              left.object.destroy();
+              this.board[row].splice(col - 1, 1, null);
+            }
             queue.push(key);
           }
         }
@@ -125,13 +145,20 @@ export class BoardScene extends Phaser.Scene {
         const key = `${row},${col + 1}`;
         if (!visited.has(key)) {
           visited.add(key);
-          if (right.object.flowerType === obj.flowerType) {
-            right.object.setSelected(isSelected);
+          if (right?.object?.flowerType === obj.flowerType) {
+            if (isSelected) {
+              right.object.setSelected(isSelected);
+            } else {
+              right.object.destroy();
+              this.board[row].splice(col + 1, 1, null);
+            }
             queue.push(key);
           }
         }
       }
     }
+
+    console.log(this.board);
   }
 
   createGrid() {
