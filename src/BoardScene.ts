@@ -2,13 +2,7 @@ import Phaser from "phaser";
 import { Flower } from "./Flower";
 import { getRandomType } from "./functions/boardHelpers";
 import { BOARD_SIZE } from "./main";
-
-interface Tree {
-  waterNeeded: number;
-  fertilizerNeeded: number;
-  lightNeeded: number;
-  stage: number;
-}
+import { Tree } from "./Tree";
 
 interface BoardItem {
   object: Flower;
@@ -23,6 +17,8 @@ export class BoardScene extends Phaser.Scene {
   lightText!: Phaser.GameObjects.Text;
   fertilizerText!: Phaser.GameObjects.Text;
 
+  tree!: Tree;
+
   deletedCount: number = 0;
 
   board: (BoardItem | null)[][] = [];
@@ -34,7 +30,7 @@ export class BoardScene extends Phaser.Scene {
   colOffset = 6;
   cellW = this.frameWidth + this.colOffset;
   cellH = this.frameHeight + this.colOffset;
-  startX = BOARD_SIZE.width * 0.3;
+  startX = BOARD_SIZE.width * 0.4;
   startY = BOARD_SIZE.height * 0.1;
 
   get flowers(): Flower[] {
@@ -56,16 +52,29 @@ export class BoardScene extends Phaser.Scene {
   }
 
   create() {
-    this.waterText = this.add.text(150, 0, `Water: ${this.water}`, {
-      color: "#000",
-    });
-    this.lightText = this.add.text(300, 0, `Light: ${this.light}`, {
-      color: "#000",
-    });
+    this.tree = new Tree(this, 100, 150);
+    this.tree.setDisplaySize(100, 200);
+
+    this.waterText = this.add.text(
+      150,
+      0,
+      `Water: ${this.water}/${this.tree.waterNeeded}`,
+      {
+        color: "#000",
+      },
+    );
+    this.lightText = this.add.text(
+      300,
+      0,
+      `Light: ${this.light}/${this.tree.lightNeeded}`,
+      {
+        color: "#000",
+      },
+    );
     this.fertilizerText = this.add.text(
       450,
       0,
-      `Fertilizer: ${this.fertilizer}`,
+      `Fertilizer: ${this.fertilizer}/${this.tree.fertilizerNeeded}`,
       {
         color: "#000",
       },
@@ -75,9 +84,21 @@ export class BoardScene extends Phaser.Scene {
   }
 
   update() {
-    this.waterText.setText(`Water: ${this.water}`);
-    this.lightText.setText(`Light: ${this.light}`);
-    this.fertilizerText.setText(`Fertilizer: ${this.fertilizer}`);
+    this.waterText.setText(`Water: ${this.water}/${this.tree.waterNeeded}`);
+    this.lightText.setText(`Light: ${this.light}/${this.tree.lightNeeded}`);
+    this.fertilizerText.setText(
+      `Fertilizer: ${this.fertilizer}/${this.tree.fertilizerNeeded}`,
+    );
+    if (
+      this.water >= this.tree.waterNeeded &&
+      this.light >= this.tree.lightNeeded &&
+      this.fertilizer >= this.tree.fertilizerNeeded
+    ) {
+      this.tree.grow();
+      this.water = 0;
+      this.light = 0;
+      this.fertilizer = 0;
+    }
   }
 
   createLevel() {
