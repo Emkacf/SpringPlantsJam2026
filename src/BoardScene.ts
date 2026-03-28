@@ -23,6 +23,8 @@ export class BoardScene extends Phaser.Scene {
   lightText!: Phaser.GameObjects.Text;
   fertilizerText!: Phaser.GameObjects.Text;
 
+  deletedCount: number = 0;
+
   board: (BoardItem | null)[][] = [];
   width = 7;
   height = 5;
@@ -54,14 +56,14 @@ export class BoardScene extends Phaser.Scene {
   }
 
   create() {
-    this.waterText = this.add.text(200, 0, `Water: ${this.water}`, {
+    this.waterText = this.add.text(150, 0, `Water: ${this.water}`, {
       color: "#000",
     });
     this.lightText = this.add.text(300, 0, `Light: ${this.light}`, {
       color: "#000",
     });
     this.fertilizerText = this.add.text(
-      400,
+      450,
       0,
       `Fertilizer: ${this.fertilizer}`,
       {
@@ -115,7 +117,6 @@ export class BoardScene extends Phaser.Scene {
     const nonNull = this.flowers.filter((item) => item != null);
     if (nonNull.length === 0) {
       this.createLevel();
-      console.log(this.flowers);
     }
   }
 
@@ -167,6 +168,7 @@ export class BoardScene extends Phaser.Scene {
     const queue: string[] = [];
     let rowIndex = -1;
     let colIndex = -1;
+    this.deletedCount = 0;
 
     rowIndex = this.board.findIndex((row) => {
       colIndex = row.findIndex((item) => item?.object === obj);
@@ -177,6 +179,7 @@ export class BoardScene extends Phaser.Scene {
 
     if (!isSelected) {
       obj.destroy();
+      this.deletedCount++;
       this.board[rowIndex].splice(colIndex, 1, null);
     }
 
@@ -196,6 +199,8 @@ export class BoardScene extends Phaser.Scene {
               up.object.setSelected(isSelected);
             } else {
               up.object.destroy();
+              this.deletedCount++;
+
               this.board[row - 1].splice(col, 1, null);
             }
             queue.push(key);
@@ -212,6 +217,7 @@ export class BoardScene extends Phaser.Scene {
               down.object.setSelected(isSelected);
             } else {
               down.object.destroy();
+              this.deletedCount++;
               this.board[row + 1].splice(col, 1, null);
             }
             queue.push(key);
@@ -228,6 +234,7 @@ export class BoardScene extends Phaser.Scene {
               left.object.setSelected(isSelected);
             } else {
               left.object.destroy();
+              this.deletedCount++;
               this.board[row].splice(col - 1, 1, null);
             }
             queue.push(key);
@@ -244,11 +251,32 @@ export class BoardScene extends Phaser.Scene {
               right.object.setSelected(isSelected);
             } else {
               right.object.destroy();
+              this.deletedCount++;
               this.board[row].splice(col + 1, 1, null);
             }
             queue.push(key);
           }
         }
+      }
+    }
+
+    if (!obj.selected) {
+      let bonus = 1;
+      if (this.deletedCount >= 5) {
+        bonus += 1.5;
+      }
+      if (this.deletedCount >= 10) {
+        bonus += 2;
+      }
+
+      if (obj.flowerType === 0) {
+        this.water += Math.ceil(this.deletedCount * bonus);
+      }
+      if (obj.flowerType === 1) {
+        this.light += Math.ceil(this.deletedCount * bonus);
+      }
+      if (obj.flowerType === 2) {
+        this.fertilizer += Math.ceil(this.deletedCount * bonus);
       }
     }
   }
