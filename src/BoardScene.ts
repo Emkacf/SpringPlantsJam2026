@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { Flower } from "./Flower";
 import { getRandomType } from "./functions/boardHelpers";
+import { BOARD_SIZE } from "./main";
 
 interface BoardItem {
   object: Flower;
@@ -16,8 +17,8 @@ export class BoardScene extends Phaser.Scene {
   colOffset = 6;
   cellW = this.frameWidth + this.colOffset;
   cellH = this.frameHeight + this.colOffset;
-  startX = 0;
-  startY = 20;
+  startX = BOARD_SIZE.width * 0.3;
+  startY = BOARD_SIZE.height * 0.1;
 
   get flowers(): Flower[] {
     return this.board
@@ -62,8 +63,54 @@ export class BoardScene extends Phaser.Scene {
 
   onFlowerClick(obj: Flower) {
     obj.on("pointerdown", () => {
+      if (!obj.selected) {
+        this.unselectAll();
+      }
       obj.setSelected(!obj.selected);
       this.selectAdjacent(obj);
+      this.collapseColumns();
+    });
+  }
+
+  unselectAll() {
+    this.flowers.forEach((flower) => flower && flower.setSelected(false));
+  }
+
+  collapseColumns() {
+    const moves: Array<{ flower: Flower; row: number; col: number }> = [];
+
+    for (let col = 0; col < this.width; col++) {
+      let writeRow = this.height - 1;
+
+      for (let row = this.height - 1; row >= 0; row--) {
+        const item = this.board[row][col];
+        if (!item) continue;
+
+        if (writeRow !== row) {
+          this.board[writeRow][col] = item;
+          this.board[row][col] = null;
+          moves.push({ flower: item.object, row: writeRow, col });
+        }
+        writeRow--;
+      }
+
+      for (let row = writeRow; row >= 0; row--) {
+        this.board[row][col] = null;
+      }
+    }
+
+    this.animateMoves(moves);
+  }
+
+  animateMoves(moves: Array<{ flower: Flower; row: number; col: number }>) {
+    moves.forEach(({ flower, row, col }) => {
+      this.tweens.add({
+        targets: flower,
+        x: this.startX + this.cellW / 2 + col * this.cellW + 16,
+        y: this.startY + this.cellH / 2 + row * this.cellH + 16,
+        duration: 180,
+        ease: "Quad.easeIn",
+      });
     });
   }
 
@@ -157,8 +204,6 @@ export class BoardScene extends Phaser.Scene {
         }
       }
     }
-
-    console.log(this.board);
   }
 
   createGrid() {
