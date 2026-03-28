@@ -3,11 +3,26 @@ import { Flower } from "./Flower";
 import { getRandomType } from "./functions/boardHelpers";
 import { BOARD_SIZE } from "./main";
 
+interface Tree {
+  waterNeeded: number;
+  fertilizerNeeded: number;
+  lightNeeded: number;
+  stage: number;
+}
+
 interface BoardItem {
   object: Flower;
 }
 
 export class BoardScene extends Phaser.Scene {
+  water: number = 0;
+  light: number = 0;
+  fertilizer: number = 0;
+
+  waterText!: Phaser.GameObjects.Text;
+  lightText!: Phaser.GameObjects.Text;
+  fertilizerText!: Phaser.GameObjects.Text;
+
   board: (BoardItem | null)[][] = [];
   width = 7;
   height = 5;
@@ -39,6 +54,31 @@ export class BoardScene extends Phaser.Scene {
   }
 
   create() {
+    this.waterText = this.add.text(200, 0, `Water: ${this.water}`, {
+      color: "#000",
+    });
+    this.lightText = this.add.text(300, 0, `Light: ${this.light}`, {
+      color: "#000",
+    });
+    this.fertilizerText = this.add.text(
+      400,
+      0,
+      `Fertilizer: ${this.fertilizer}`,
+      {
+        color: "#000",
+      },
+    );
+
+    this.createLevel();
+  }
+
+  update() {
+    this.waterText.setText(`Water: ${this.water}`);
+    this.lightText.setText(`Light: ${this.light}`);
+    this.fertilizerText.setText(`Fertilizer: ${this.fertilizer}`);
+  }
+
+  createLevel() {
     this.board = this.createBoard(this.width, this.height);
 
     this.flowers.forEach((obj: Flower) => {
@@ -48,8 +88,6 @@ export class BoardScene extends Phaser.Scene {
 
     this.createGrid();
   }
-
-  update() {}
 
   createBoard(width: number, height: number): BoardItem[][] {
     const board = Array.from({ length: height }, () =>
@@ -69,7 +107,16 @@ export class BoardScene extends Phaser.Scene {
       obj.setSelected(!obj.selected);
       this.selectAdjacent(obj);
       this.collapseColumns();
+      this.isFinished();
     });
+  }
+
+  isFinished() {
+    const nonNull = this.flowers.filter((item) => item != null);
+    if (nonNull.length === 0) {
+      this.createLevel();
+      console.log(this.flowers);
+    }
   }
 
   unselectAll() {
