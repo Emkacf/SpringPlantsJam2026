@@ -188,6 +188,15 @@ export class BoardScene extends Phaser.Scene {
     this.sound.play(clickSounds[type], { volume: 0.4 });
   }
 
+  playSuccessSound(type: number) {
+    const successSounds = [
+      `water_success_0${getRandomType() + 1}`,
+      `light_success_0${getRandomType() + 1}`,
+      `fertilizer_success_0${getRandomType() + 1}`,
+    ];
+    this.sound.play(successSounds[type], { volume: 0.4 });
+  }
+
   update() {
     this.refreshStats();
     if (
@@ -229,7 +238,13 @@ export class BoardScene extends Phaser.Scene {
         this.unselectAll();
       }
       obj.setSelected(!obj.selected);
-      this.playClickSound(obj.flowerType);
+
+      if (obj.selected) {
+        this.playClickSound(obj.flowerType);
+      } else {
+        this.playSuccessSound(obj.flowerType);
+      }
+
       this.selectAdjacent(obj);
       this.collapseColumns();
       this.isFinished();
