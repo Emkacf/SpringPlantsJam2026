@@ -24,14 +24,18 @@ export class BoardScene extends Phaser.Scene {
   board: (BoardItem | null)[][] = [];
   width = 7;
   height = 5;
-  frameWidth = 32;
-  frameHeight = 32;
+  frameWidth = 64;
+  frameHeight = 64;
 
   colOffset = 6;
   cellW = this.frameWidth + this.colOffset;
   cellH = this.frameHeight + this.colOffset;
   startX = BOARD_SIZE.width * 0.4;
-  startY = BOARD_SIZE.height * 0.1;
+  startY = BOARD_SIZE.height * 0.2;
+
+  waterBg!: Phaser.GameObjects.Rectangle;
+  lightBg!: Phaser.GameObjects.Rectangle;
+  fertilizerBg!: Phaser.GameObjects.Rectangle;
 
   get flowers(): Flower[] {
     return this.board
@@ -49,46 +53,133 @@ export class BoardScene extends Phaser.Scene {
       frameWidth: this.frameWidth,
       frameHeight: this.frameHeight,
     });
+
+    this.load.audio(
+      "fertilizer_click_01",
+      "assets/sounds/fertilizer_click_01.wav",
+    );
+    this.load.audio(
+      "fertilizer_click_02",
+      "assets/sounds/fertilizer_click_02.wav",
+    );
+    this.load.audio(
+      "fertilizer_click_03",
+      "assets/sounds/fertilizer_click_03.wav",
+    );
+
+    this.load.audio("light_click_01", "assets/sounds/light_click_01.wav");
+    this.load.audio("light_click_02", "assets/sounds/light_click_02.wav");
+    this.load.audio("light_click_03", "assets/sounds/light_click_03.wav");
+
+    this.load.audio("water_click_01", "assets/sounds/water_click_01.wav");
+    this.load.audio("water_click_02", "assets/sounds/water_click_02.wav");
+    this.load.audio("water_click_03", "assets/sounds/water_click_03.wav");
+
+    this.load.audio(
+      "fertilizer_success_01",
+      "assets/sounds/fertilizer_success_01.wav",
+    );
+    this.load.audio(
+      "fertilizer_success_02",
+      "assets/sounds/fertilizer_success_02.wav",
+    );
+    this.load.audio(
+      "fertilizer_success_03",
+      "assets/sounds/fertilizer_success_03.wav",
+    );
+
+    this.load.audio("light_success_01", "assets/sounds/light_success_01.wav");
+    this.load.audio("light_success_02", "assets/sounds/light_success_02.wav");
+    this.load.audio("light_success_03", "assets/sounds/light_success_03.wav");
+
+    this.load.audio("water_success_01", "assets/sounds/water_success_01.wav");
+    this.load.audio("water_success_02", "assets/sounds/water_success_02.wav");
+    this.load.audio("water_success_03", "assets/sounds/water_success_03.wav");
+
+    this.load.audio(
+      "springplants_music_layer_01",
+      "assets/sounds/springplants_music_layer_01.wav",
+    );
+    this.load.audio(
+      "springplants_music_layer_02",
+      "assets/sounds/springplants_music_layer_02.wav",
+    );
+    this.load.audio(
+      "springplants_music_layer_03",
+      "assets/sounds/springplants_music_layer_03.wav",
+    );
   }
 
   create() {
-    this.tree = new Tree(this, 100, 150);
-    this.tree.setDisplaySize(100, 200);
+    this.tree = new Tree(this, 150, 320);
+    this.tree.setDisplaySize(200, 350);
+    const cardWidth = 200;
+    const cardGap = 40;
+    const topY = 16;
+    const textOffsetX = 10;
+    const textY = 18;
 
-    this.waterText = this.add.text(
-      150,
-      0,
-      `Water: ${this.water}/${this.tree.waterNeeded}`,
-      {
-        color: "#000",
-      },
-    );
-    this.lightText = this.add.text(
-      300,
-      0,
-      `Light: ${this.light}/${this.tree.lightNeeded}`,
-      {
-        color: "#000",
-      },
-    );
-    this.fertilizerText = this.add.text(
-      450,
-      0,
-      `Fertilizer: ${this.fertilizer}/${this.tree.fertilizerNeeded}`,
-      {
-        color: "#000",
-      },
+    const totalHudWidth = cardWidth * 3 + cardGap * 2;
+    const hudStartX = (BOARD_SIZE.width - totalHudWidth) / 2;
+
+    const waterX = hudStartX;
+    const lightX = waterX + cardWidth + cardGap;
+    const fertilizerX = lightX + cardWidth + cardGap;
+
+    this.waterBg = this.makeStatCard(waterX, topY, 0x38bdf8);
+    this.lightBg = this.makeStatCard(lightX, topY, 0xfacc15);
+    this.fertilizerBg = this.makeStatCard(fertilizerX, topY, 0x86efac);
+
+    this.waterText = this.makeStatText(waterX + textOffsetX, textY, "#7dd3fc");
+    this.lightText = this.makeStatText(lightX + textOffsetX, textY, "#fde047");
+    this.fertilizerText = this.makeStatText(
+      fertilizerX + textOffsetX,
+      textY,
+      "#bbf7d0",
     );
 
+    this.refreshStats();
     this.createLevel();
   }
 
-  update() {
-    this.waterText.setText(`Water: ${this.water}/${this.tree.waterNeeded}`);
-    this.lightText.setText(`Light: ${this.light}/${this.tree.lightNeeded}`);
-    this.fertilizerText.setText(
-      `Fertilizer: ${this.fertilizer}/${this.tree.fertilizerNeeded}`,
+  private makeStatCard(x: number, y: number, tint: number) {
+    return this.add
+      .rectangle(x, y, 230, 44, 0x1f2937, 0.92)
+      .setStrokeStyle(2, tint, 0.95)
+      .setOrigin(0, 0)
+      .setScrollFactor(0);
+  }
+
+  private makeStatText(x: number, y: number, color: string) {
+    return this.add
+      .text(x, y, "", {
+        fontFamily: "Trebuchet MS, Verdana, sans-serif",
+        fontSize: "20px",
+        fontStyle: "bold",
+        color,
+        align: "left",
+        stroke: "#0b1220",
+        strokeThickness: 3,
+      })
+      .setShadow(0, 2, "#000000", 3, true, true)
+      .setPadding(10, 8, 10, 8)
+      .setScrollFactor(0);
+  }
+
+  private refreshStats() {
+    this.waterText.setText(
+      "WATER  " + this.water + "/" + this.tree.waterNeeded,
     );
+    this.lightText.setText(
+      "LIGHT  " + this.light + "/" + this.tree.lightNeeded,
+    );
+    this.fertilizerText.setText(
+      "FERTILIZER  " + this.fertilizer + "/" + this.tree.fertilizerNeeded,
+    );
+  }
+
+  update() {
+    this.refreshStats();
     if (
       this.water >= this.tree.waterNeeded &&
       this.light >= this.tree.lightNeeded &&
@@ -175,8 +266,8 @@ export class BoardScene extends Phaser.Scene {
     moves.forEach(({ flower, row, col }) => {
       this.tweens.add({
         targets: flower,
-        x: this.startX + this.cellW / 2 + col * this.cellW + 16,
-        y: this.startY + this.cellH / 2 + row * this.cellH + 16,
+        x: this.startX + this.cellW / 2 + col * this.cellW + 30,
+        y: this.startY + this.cellH / 2 + row * this.cellH + 30,
         duration: 180,
         ease: "Quad.easeIn",
       });

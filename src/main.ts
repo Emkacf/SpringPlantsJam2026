@@ -7,8 +7,8 @@ const gameBoard = document.createElement("canvas");
 document.body.appendChild(gameBoard);
 
 export const BOARD_SIZE = {
-  width: 630,
-  height: 423,
+  width: 1024,
+  height: 600,
 };
 
 const config: Phaser.Types.Core.GameConfig = {
@@ -18,7 +18,7 @@ const config: Phaser.Types.Core.GameConfig = {
   canvas: gameBoard,
   scene: [BoardScene],
   scale: {
-    zoom: 2,
+    zoom: 1,
   },
 
   backgroundColor: "#ededed",

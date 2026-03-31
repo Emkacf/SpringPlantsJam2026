@@ -5,7 +5,7 @@ export type Phase = 0 | 1 | 2;
 const phaseConfig = {
   0: {
     waterNeeded: 100,
-    fertilizerNeeded: 10,
+    fertilizerNeeded: 100,
     lightNeeded: 100,
   },
   1: {
@@ -30,9 +30,9 @@ export class Tree extends Phaser.GameObjects.Sprite {
     super(scene, x, y, "mushroom", 0);
     this.scene = scene;
     this.phase = 0;
-    this.waterNeeded = 100;
-    this.lightNeeded = 100;
-    this.fertilizerNeeded = 10;
+    this.waterNeeded = phaseConfig[this.phase].waterNeeded;
+    this.fertilizerNeeded = phaseConfig[this.phase].fertilizerNeeded;
+    this.lightNeeded = phaseConfig[this.phase].lightNeeded;
     scene.add.existing(this);
   }
 
