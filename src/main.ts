@@ -20,7 +20,9 @@ const config: Phaser.Types.Core.GameConfig = {
   scale: {
     zoom: 1,
   },
-
+  audio: {
+    disableWebAudio: false,
+  },
   backgroundColor: "#ededed",
   pixelArt: true,
   antialias: false,

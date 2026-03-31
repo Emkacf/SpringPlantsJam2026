@@ -111,6 +111,7 @@ export class BoardScene extends Phaser.Scene {
   }
 
   create() {
+    this.sound.play("springplants_music_layer_01", { loop: true, volume: 0.1 });
     this.tree = new Tree(this, 150, 320);
     this.tree.setDisplaySize(200, 350);
     const cardWidth = 200;
@@ -178,6 +179,15 @@ export class BoardScene extends Phaser.Scene {
     );
   }
 
+  playClickSound(type: number) {
+    const clickSounds = [
+      `water_click_0${getRandomType() + 1}`,
+      `light_click_0${getRandomType() + 1}`,
+      `fertilizer_click_0${getRandomType() + 1}`,
+    ];
+    this.sound.play(clickSounds[type], { volume: 0.4 });
+  }
+
   update() {
     this.refreshStats();
     if (
@@ -219,6 +229,7 @@ export class BoardScene extends Phaser.Scene {
         this.unselectAll();
       }
       obj.setSelected(!obj.selected);
+      this.playClickSound(obj.flowerType);
       this.selectAdjacent(obj);
       this.collapseColumns();
       this.isFinished();
