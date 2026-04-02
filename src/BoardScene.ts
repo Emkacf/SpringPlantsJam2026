@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { Flower } from "./Flower";
 import { getRandomType } from "./functions/boardHelpers";
 import { BOARD_SIZE } from "./main";
-import { Phase, Tree } from "./Tree";
+import { Tree } from "./Tree";
 
 interface BoardItem {
   object: Flower;
