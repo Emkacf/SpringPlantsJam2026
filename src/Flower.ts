@@ -7,7 +7,7 @@ export class Flower extends Phaser.GameObjects.Sprite {
   flowerType: FlowerType;
 
   constructor(scene: Phaser.Scene, x: number, y: number, type: FlowerType) {
-    super(scene, x, y, "mushroom", type);
+    super(scene, x, y, "icons", type);
     this.selected = false;
     this.scene = scene;
     this.flowerType = type;

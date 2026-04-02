@@ -49,7 +49,7 @@ export class BoardScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.spritesheet("mushroom", "assets/mushroom.png", {
+    this.load.spritesheet("icons", "assets/icons.png", {
       frameWidth: this.frameWidth,
       frameHeight: this.frameHeight,
     });
@@ -111,7 +111,7 @@ export class BoardScene extends Phaser.Scene {
   }
 
   create() {
-    this.sound.play("springplants_music_layer_01", { loop: true, volume: 0.1 });
+    this.sound.play("springplants_music_layer_01", { loop: true, volume: 1 });
     this.tree = new Tree(this, 150, 320);
     this.tree.setDisplaySize(200, 350);
     const cardWidth = 200;
@@ -181,8 +181,8 @@ export class BoardScene extends Phaser.Scene {
 
   playClickSound(type: number) {
     const clickSounds = [
-      `water_click_0${getRandomType() + 1}`,
       `light_click_0${getRandomType() + 1}`,
+      `water_click_0${getRandomType() + 1}`,
       `fertilizer_click_0${getRandomType() + 1}`,
     ];
     this.sound.play(clickSounds[type], { volume: 0.4 });
@@ -190,8 +190,8 @@ export class BoardScene extends Phaser.Scene {
 
   playSuccessSound(type: number) {
     const successSounds = [
-      `water_success_0${getRandomType() + 1}`,
       `light_success_0${getRandomType() + 1}`,
+      `water_success_0${getRandomType() + 1}`,
       `fertilizer_success_0${getRandomType() + 1}`,
     ];
     this.sound.play(successSounds[type], { volume: 0.4 });
