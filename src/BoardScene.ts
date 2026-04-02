@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { Flower } from "./Flower";
 import { getRandomType } from "./functions/boardHelpers";
 import { BOARD_SIZE } from "./main";
-import { Tree } from "./Tree";
+import { Phase, Tree } from "./Tree";
 
 interface BoardItem {
   object: Flower;
@@ -21,6 +21,9 @@ export class BoardScene extends Phaser.Scene {
 
   deletedCount: number = 0;
 
+  private treeDying = false;
+  private musicLayers: Phaser.Sound.WebAudioSound[] = [];
+
   board: (BoardItem | null)[][] = [];
   width = 7;
   height = 5;
@@ -31,7 +34,7 @@ export class BoardScene extends Phaser.Scene {
   cellW = this.frameWidth + this.colOffset;
   cellH = this.frameHeight + this.colOffset;
   startX = BOARD_SIZE.width * 0.4;
-  startY = BOARD_SIZE.height * 0.2;
+  startY = BOARD_SIZE.height * 0.22;
 
   waterBg!: Phaser.GameObjects.Rectangle;
   lightBg!: Phaser.GameObjects.Rectangle;
@@ -41,7 +44,7 @@ export class BoardScene extends Phaser.Scene {
     return this.board
       .flat()
       .map((item) => item?.object)
-      .filter((obj): obj is Flower => obj !== null);
+      .filter((obj): obj is Flower => obj != null);
   }
 
   constructor() {
@@ -111,8 +114,16 @@ export class BoardScene extends Phaser.Scene {
   }
 
   create() {
-    this.sound.play("springplants_music_layer_01", { loop: true, volume: 1 });
-    this.tree = new Tree(this, 150, 320);
+    for (let i = 1; i <= 3; i++) {
+      const layer = this.sound.add(`springplants_music_layer_0${i}`, {
+        loop: true,
+        volume: i === 1 ? 1 : 0,
+      }) as Phaser.Sound.WebAudioSound;
+      layer.play();
+      this.musicLayers.push(layer);
+    }
+
+    this.tree = new Tree(this, 180, 320);
     this.tree.setDisplaySize(200, 350);
     const cardWidth = 200;
     const cardGap = 40;
@@ -141,6 +152,57 @@ export class BoardScene extends Phaser.Scene {
 
     this.refreshStats();
     this.createLevel();
+
+    this.add
+      .text(
+        685,
+        90,
+        "Match icons to harvest light, water & fertilizer. Watch your tree grow!",
+        {
+          fontFamily: "Trebuchet MS, Verdana, sans-serif",
+          fontSize: "14px",
+          color: "#e5e7eb",
+          align: "center",
+          stroke: "#0b1220",
+          strokeThickness: 2,
+        },
+      )
+      .setOrigin(0.5, 0)
+      .setScrollFactor(0);
+
+    this.add
+      .text(
+        685,
+        110,
+        "The more you match, the more you harvest! Try to get big combos for extra points!",
+        {
+          fontFamily: "Trebuchet MS, Verdana, sans-serif",
+          fontSize: "14px",
+          color: "#e5e7eb",
+          align: "center",
+          stroke: "#0b1220",
+          strokeThickness: 2,
+        },
+      )
+      .setOrigin(0.5, 0)
+      .setScrollFactor(0);
+
+    this.add
+      .text(
+        685,
+        130,
+        "⚠ Be careful! Too much of any resource will overwhelm the tree and it will die!",
+        {
+          fontFamily: "Trebuchet MS, Verdana, sans-serif",
+          fontSize: "14px",
+          color: "#ffffff",
+          align: "center",
+          stroke: "#bb0606",
+          strokeThickness: 2,
+        },
+      )
+      .setOrigin(0.5, 0)
+      .setScrollFactor(0);
   }
 
   private makeStatCard(x: number, y: number, tint: number) {
@@ -177,6 +239,23 @@ export class BoardScene extends Phaser.Scene {
     this.fertilizerText.setText(
       "FERTILIZER  " + this.fertilizer + "/" + this.tree.fertilizerNeeded,
     );
+
+    const danger = 0xff4444;
+    this.waterBg.setStrokeStyle(
+      2,
+      this.water > this.tree.waterNeeded * 1.5 ? danger : 0x38bdf8,
+      0.95,
+    );
+    this.lightBg.setStrokeStyle(
+      2,
+      this.light > this.tree.lightNeeded * 1.5 ? danger : 0xfacc15,
+      0.95,
+    );
+    this.fertilizerBg.setStrokeStyle(
+      2,
+      this.fertilizer > this.tree.fertilizerNeeded * 1.5 ? danger : 0x86efac,
+      0.95,
+    );
   }
 
   playClickSound(type: number) {
@@ -204,11 +283,120 @@ export class BoardScene extends Phaser.Scene {
       this.light >= this.tree.lightNeeded &&
       this.fertilizer >= this.tree.fertilizerNeeded
     ) {
+      if (this.tree.phase === 2) {
+        this.wonGame();
+        return;
+      }
       this.tree.grow();
+      this.tweens.add({
+        targets: this.musicLayers[this.tree.phase],
+        volume: 1,
+        duration: 1000,
+        ease: "Linear",
+      });
+
+      this.clearLevel();
+      this.createLevel();
       this.water = 0;
       this.light = 0;
       this.fertilizer = 0;
+
+      const growMsg = this.add
+        .text(BOARD_SIZE.width / 2, BOARD_SIZE.height / 2, "The tree grew!", {
+          fontFamily: "Trebuchet MS, Verdana, sans-serif",
+          fontSize: "26px",
+          fontStyle: "bold",
+          color: "#86efac",
+          align: "center",
+          stroke: "#0b1220",
+          strokeThickness: 4,
+        })
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(100);
+      this.time.delayedCall(1500, () => growMsg.destroy());
     }
+
+    if (!this.treeDying) {
+      const overWater = this.water > this.tree.waterNeeded * 2;
+      const overLight = this.light > this.tree.lightNeeded * 2;
+      const overFertilizer = this.fertilizer > this.tree.fertilizerNeeded * 2;
+      if (overWater || overLight || overFertilizer) {
+        const resource = overWater
+          ? "water"
+          : overLight
+            ? "light"
+            : "fertilizer";
+        this.treeDying = true;
+        this.handleTreeDeath(resource);
+      }
+    }
+  }
+
+  wonGame() {
+    this.add
+      .text(
+        BOARD_SIZE.width / 2,
+        BOARD_SIZE.height / 2,
+        `Congratulations! Your tree is fully grown!`,
+        {
+          fontFamily: "Trebuchet MS, Verdana, sans-serif",
+          fontSize: "26px",
+          fontStyle: "bold",
+          color: "#86efac",
+          align: "center",
+          stroke: "#0b1220",
+          strokeThickness: 4,
+        },
+      )
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(100);
+  }
+
+  handleTreeDeath(resource: string) {
+    this.water = 0;
+    this.light = 0;
+    this.fertilizer = 0;
+
+    const msg = this.add
+      .text(
+        BOARD_SIZE.width / 2,
+        BOARD_SIZE.height / 2,
+        `Too much ${resource}!\nThe tree is overwhelmed and wilts back.`,
+        {
+          fontFamily: "Trebuchet MS, Verdana, sans-serif",
+          fontSize: "22px",
+          fontStyle: "bold",
+          color: "#ff4444",
+          align: "center",
+          stroke: "#0b1220",
+          strokeThickness: 4,
+        },
+      )
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(100);
+
+    this.tree.die(() => {
+      this.treeDying = false;
+      this.musicLayers.slice(1).forEach((layer) => {
+        this.tweens.add({
+          targets: layer,
+          volume: 0,
+          duration: 500,
+          ease: "Linear",
+        });
+      });
+      this.time.delayedCall(800, () => msg.destroy());
+      this.clearLevel();
+      this.createLevel();
+    });
+  }
+
+  clearLevel() {
+    this.flowers.forEach((flower) => flower.destroy());
+    this.board = [];
   }
 
   createLevel() {
@@ -292,7 +480,7 @@ export class BoardScene extends Phaser.Scene {
     moves.forEach(({ flower, row, col }) => {
       this.tweens.add({
         targets: flower,
-        x: this.startX + this.cellW / 2 + col * this.cellW + 30,
+        x: this.startX + this.cellW / 2 + col * this.cellW + 32,
         y: this.startY + this.cellH / 2 + row * this.cellH + 30,
         duration: 180,
         ease: "Quad.easeIn",
@@ -399,18 +587,21 @@ export class BoardScene extends Phaser.Scene {
     }
 
     if (!obj.selected) {
-      let bonus = 1;
-      if (this.deletedCount >= 5) {
-        bonus += 1.5;
-      }
+      let bonus: number;
       if (this.deletedCount >= 10) {
-        bonus += 2;
+        bonus = 3;
+      } else if (this.deletedCount >= 6) {
+        bonus = 2;
+      } else if (this.deletedCount >= 3) {
+        bonus = 1.5;
+      } else {
+        bonus = 1;
       }
 
-      if (obj.flowerType === 0) {
+      if (obj.flowerType === 1) {
         this.water += Math.ceil(this.deletedCount * bonus);
       }
-      if (obj.flowerType === 1) {
+      if (obj.flowerType === 0) {
         this.light += Math.ceil(this.deletedCount * bonus);
       }
       if (obj.flowerType === 2) {
