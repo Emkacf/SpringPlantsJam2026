@@ -155,6 +155,24 @@ export class BoardScene extends Phaser.Scene {
 
     this.add
       .text(
+        360,
+        300,
+        "Combo bonus:\n×3  10+ match\n×2    6+ match\n×1.5  3+ match",
+        {
+          fontFamily: "Trebuchet MS, Verdana, sans-serif",
+          fontSize: "13px",
+          color: "#d1fae5",
+          align: "left",
+          stroke: "#0b1220",
+          strokeThickness: 2,
+          lineSpacing: 4,
+        },
+      )
+      .setOrigin(0.5, 0)
+      .setScrollFactor(0);
+
+    this.add
+      .text(
         685,
         90,
         "Match icons to harvest light, water & fertilizer. Watch your tree grow!",
