@@ -124,7 +124,7 @@ export class BoardScene extends Phaser.Scene {
     }
 
     this.tree = new Tree(this, 180, 320);
-    this.tree.setDisplaySize(200, 350);
+    this.tree.setDisplaySize(200, 360);
     const cardWidth = 200;
     const cardGap = 40;
     const topY = 16;
@@ -156,7 +156,7 @@ export class BoardScene extends Phaser.Scene {
     this.add
       .text(
         360,
-        300,
+        430,
         "Combo bonus:\n×3  10+ match\n×2    6+ match\n×1.5  3+ match",
         {
           fontFamily: "Trebuchet MS, Verdana, sans-serif",
